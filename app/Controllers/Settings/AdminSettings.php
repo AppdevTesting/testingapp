@@ -503,7 +503,7 @@ class AdminSettings extends SettingsAPI {
 			$current_fields['available_currencies'] = [ // This is the target field
 				'title'       => esc_html__( 'Available Currencies for Listings', 'classified-listing' ),
 				'type'        => 'multiselect',
-				'class'       => 'rtcl-select2', // Current class
+				'class'       => 'rtcl-standard-multiselect', // Changed class
 				'options'     => $currencies,
 				'default'     => [ Functions::get_currency() ],
 				'description' => esc_html__( 'Select the currencies that users can choose for their listings. Hold Ctrl (or Cmd on Mac) to select multiple. The main store currency will always be included. This option is used when "Enable Multiple Currencies" is checked.', 'classified-listing' ),
