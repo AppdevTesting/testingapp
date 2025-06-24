@@ -483,6 +483,44 @@ class AdminSettings extends SettingsAPI {
 		if ( $this->current_section && 'tax_rate' === $this->current_section ) {
 			include RTCL_PATH . "views/settings/tax-rate-settings.php";
 		} else {
+			if ( 'general' === $this->active_tab && ! $this->current_section ) {
+				// Ensure $field is an array if it's not already
+				if ( ! is_array( $field ) ) {
+					$field = [];
+				}
+				$currencies = \Rtcl\Resources\Options::get_currencies();
+
+				// New fields for multi-currency
+				$multi_currency_fields = [
+					'enable_multiple_currencies' => [
+						'title'   => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
+						'type'    => 'checkbox',
+						'label'   => esc_html__( 'Allow users to select currency when submitting an ad and display ads in their chosen currency.', 'classified-listing' ),
+						'default' => 'no',
+						'description' => esc_html__('When enabled, an option to select available currencies will appear below. Save settings to see the option if enabling for the first time.', 'classified-listing'),
+						'section' => 'currency_section', // Assign to currency section
+					],
+					'available_currencies'       => [
+						'title'       => esc_html__( 'Available Currencies', 'classified-listing' ),
+						'type'        => 'multiselect',
+						'class'       => 'rtcl-select2',
+						'options'     => $currencies,
+						'default'     => [ Functions::get_currency() ], // Default to current store currency
+						'description' => esc_html__( 'Select the currencies that will be available for users to choose when submitting an ad. The main store currency will always be included.', 'classified-listing' ),
+						'dependency'  => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'],
+						'section' => 'currency_section', // Assign to currency section
+					],
+				];
+
+				// Find the currency_section and insert new fields after currency_decimal_separator
+                $currency_section_key = 'currency_decimal_separator'; // The key of the last standard currency field
+                if (isset($field[$currency_section_key])) {
+                    $field = Functions::array_insert_after($currency_section_key, $field, $multi_currency_fields);
+                } else {
+                    // Fallback if currency_decimal_separator is not found, append to the end of $field
+                    $field = array_merge($field, $multi_currency_fields);
+                }
+			}
 			$this->form_fields = apply_filters( 'rtcl_settings_option_fields', $field, $this->active_tab, $this->current_section );
 		}
 	}
