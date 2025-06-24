@@ -541,8 +541,9 @@ class AdminSettings extends SettingsAPI {
 
 	protected function general_add_subsections() {
 		$sub_sections = [
-			''          => esc_html__( "General", 'classified-listing' ),
-			'directory' => esc_html__( "Directory", 'classified-listing' )
+			''                                 => esc_html__( "General", 'classified-listing' ),
+			'multi_currency_options'           => esc_html__( "Multi-Currency Options", 'classified-listing' ),
+			'directory'                        => esc_html__( "Directory", 'classified-listing' )
 		];
 		$sub_sections = apply_filters( 'rtcl_general_sub_sections', $sub_sections );
 		$this->subtabs = $sub_sections;
