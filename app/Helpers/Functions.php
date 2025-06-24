@@ -781,27 +781,40 @@ class Functions {
 	 * @return array
 	 */
 	public static function get_available_currencies() {
-		$available_currencies = self::get_option_item( 'rtcl_general_settings', 'available_currencies', [] );
-		$all_currencies       = \Rtcl\Resources\Options::get_currencies();
-		$main_currency        = self::get_currency();
+		$selected_currencies_from_settings = self::get_option_item( 'rtcl_general_settings', 'available_currencies', [] );
+		$all_currencies_map            = \Rtcl\Resources\Options::get_currencies(); // [code => "Name (Symbol)"]
+		$main_store_currency_code      = self::get_currency();
 
-		if ( empty( $available_currencies ) ) {
-			return [ $main_currency => $all_currencies[ $main_currency ] ?? $main_currency ];
-		}
+		$final_available_currencies = [];
 
-		$currencies = [];
-		// Ensure main currency is always available
-		if ( ! in_array( $main_currency, $available_currencies ) ) {
-			$available_currencies[] = $main_currency;
-		}
-
-		foreach ( $available_currencies as $currency_code ) {
-			if ( isset( $all_currencies[ $currency_code ] ) ) {
-				$currencies[ $currency_code ] = $all_currencies[ $currency_code ];
+		if ( ! empty( $selected_currencies_from_settings ) && is_array( $selected_currencies_from_settings ) ) {
+			foreach ( $selected_currencies_from_settings as $currency_code ) {
+				if ( isset( $all_currencies_map[ $currency_code ] ) ) {
+					$final_available_currencies[ $currency_code ] = $all_currencies_map[ $currency_code ];
+				}
 			}
 		}
 
-		return $currencies;
+		// Always ensure the main store currency is in the list, if it's a valid currency.
+		if ( isset( $all_currencies_map[ $main_store_currency_code ] ) ) {
+			if ( ! isset( $final_available_currencies[ $main_store_currency_code ] ) ) {
+				// Add it if it wasn't selected or if the selection was empty.
+				$final_available_currencies[ $main_store_currency_code ] = $all_currencies_map[ $main_store_currency_code ];
+			}
+		} elseif ( empty( $final_available_currencies ) ) {
+			// Fallback if main currency is somehow not in all_currencies_map and selection is empty
+			// This is unlikely but a safeguard.
+			return [ $main_store_currency_code => $main_store_currency_code ];
+		}
+
+		// If, after all, the list is empty (e.g., main currency was invalid and nothing was selected),
+		// it's better to return at least the main currency code as a fallback than an empty array
+		// which would always hide the dropdown.
+		if (empty($final_available_currencies) && $main_store_currency_code) {
+			$final_available_currencies[$main_store_currency_code] = $all_currencies_map[$main_store_currency_code] ?? $main_store_currency_code;
+		}
+
+		return $final_available_currencies;
 	}
 
 	/**
