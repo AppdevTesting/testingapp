@@ -675,6 +675,20 @@ class Functions {
 	 * @return string
 	 */
 	public static function price( $price, $only_formatted_price = false, $args = [] ) {
+		$listing_id = null;
+		if ( ! empty( $args['listing'] ) && $args['listing'] instanceof Listing ) {
+			$listing_id = $args['listing']->get_id();
+		} elseif ( is_numeric( $args['listing'] ) ) {
+			$listing_id = $args['listing'];
+		}
+
+		$currency = '';
+		if ( ! empty( $args['currency'] ) ) {
+			$currency = $args['currency'];
+		} elseif ( self::get_option_item( 'rtcl_general_settings', 'enable_multiple_currencies', 'no' ) === 'yes' && $listing_id ) {
+			$currency = self::get_listing_currency( $listing_id );
+		}
+
 		$args = apply_filters(
 			'rtcl_price_args',
 			wp_parse_args(
@@ -682,12 +696,12 @@ class Functions {
 				[
 					'listing'            => null,
 					'meta_label'         => true,
-					'currency'           => '',
+					'currency'           => $currency ?: self::get_currency(),
 					'currency_symbol'    => '',
-					'decimal_separator'  => self::get_decimal_separator(),
-					'thousand_separator' => self::get_thousands_separator(),
-					'decimals'           => self::get_price_decimals(),
-					'price_format'       => self::get_price_format(),
+					'decimal_separator'  => self::get_decimal_separator( false, $currency ),
+					'thousand_separator' => self::get_thousands_separator( false, $currency ),
+					'decimals'           => self::get_price_decimals( $currency ),
+					'price_format'       => self::get_price_format( false, $currency ),
 				]
 			),
 			$price,
@@ -733,7 +747,7 @@ class Functions {
 			$args );
 
 		if ( apply_filters( 'rtcl_price_trim_zeros', true ) && $args['decimals'] > 0 ) {
-			$price = self::trim_zeros( $price );
+			$price = self::trim_zeros( $price, false, $args['currency'] );
 		}
 
 		if ( $only_formatted_price ) {
@@ -761,7 +775,48 @@ class Functions {
 		return apply_filters( 'rtcl_price', $return, $price, $args, $unformatted_price, $original_price );
 	}
 
+	/**
+	 * Get the list of available currencies based on plugin settings.
+	 *
+	 * @return array
+	 */
+	public static function get_available_currencies() {
+		$available_currencies = self::get_option_item( 'rtcl_general_settings', 'available_currencies', [] );
+		$all_currencies       = \Rtcl\Resources\Options::get_currencies();
+		$main_currency        = self::get_currency();
 
+		if ( empty( $available_currencies ) ) {
+			return [ $main_currency => $all_currencies[ $main_currency ] ?? $main_currency ];
+		}
+
+		$currencies = [];
+		// Ensure main currency is always available
+		if ( ! in_array( $main_currency, $available_currencies ) ) {
+			$available_currencies[] = $main_currency;
+		}
+
+		foreach ( $available_currencies as $currency_code ) {
+			if ( isset( $all_currencies[ $currency_code ] ) ) {
+				$currencies[ $currency_code ] = $all_currencies[ $currency_code ];
+			}
+		}
+
+		return $currencies;
+	}
+
+	/**
+	 * Get the currency selected for a specific listing.
+	 *
+	 * @param int $listing_id Listing ID.
+	 * @return string Currency code.
+	 */
+	public static function get_listing_currency( $listing_id ) {
+		$currency = get_post_meta( $listing_id, '_rtcl_listing_currency', true );
+		if ( empty( $currency ) ) {
+			$currency = self::get_currency(); // Default to main currency
+		}
+		return $currency;
+	}
 	/**
 	 * Format a price with WC Currency Locale settings.
 	 *
@@ -775,12 +830,18 @@ class Functions {
 		return apply_filters( 'rtcl_format_localized_price', str_replace( '.', $decimal_separator[0], strval( $value ) ), $value );
 	}
 
-	public static function get_price_format( $payment = false ) {
-		$currency_settings = self::get_option_item( 'rtcl_general_settings', 'currency_position' );
+	public static function get_price_format( $payment = false, $currency = '' ) {
+		$currency_info = self::get_currency_info( $currency ?: self::get_currency( $payment ) );
+		$currency_pos  = $currency_info['currency_pos'] ?? self::get_option_item( 'rtcl_general_settings', 'currency_position' );
+
 		if ( $payment ) {
-			$currency_settings = self::get_option_item( 'rtcl_payment_settings', 'currency_position' );
+			$currency_pos_setting = self::get_option_item( 'rtcl_payment_settings', 'currency_position' );
+			if ( $currency_pos_setting ) {
+				$currency_pos = $currency_pos_setting;
+			}
 		}
-		$currency_pos = ! empty( $currency_settings ) ? $currency_settings : 'left';
+
+		$currency_pos = ! empty( $currency_pos ) ? $currency_pos : 'left';
 		$format       = '%1$s%2$s';
 
 		switch ( $currency_pos ) {
@@ -798,13 +859,14 @@ class Functions {
 				break;
 		}
 
-		return apply_filters( 'rtcl_get_price_format', $format, $currency_pos, $payment );
+		return apply_filters( 'rtcl_get_price_format', $format, $currency_pos, $payment, $currency );
 	}
 
 	public static function get_payment_formatted_price( $price ) {
-		$thousands_sep = self::get_thousands_separator( true );
-		$decimal_sep   = self::get_decimal_separator( true );
-		$decimals      = self::get_price_decimals();
+		$currency      = self::get_order_currency();
+		$thousands_sep = self::get_thousands_separator( true, $currency );
+		$decimal_sep   = self::get_decimal_separator( true, $currency );
+		$decimals      = self::get_price_decimals( $currency );
 
 		$original_price = $price;
 
@@ -841,7 +903,7 @@ class Functions {
 			$original_price );
 
 		if ( apply_filters( 'rtcl_payment_price_trim_zeros', false ) && $decimals > 0 ) {
-			$price = self::trim_zeros( $price, true );
+			$price = self::trim_zeros( $price, true, $currency );
 		}
 
 		return apply_filters( 'rtcl_get_payment_formatted_price', $price, $unformatted_price, $decimals, $decimal_sep, $thousands_sep );
@@ -850,8 +912,9 @@ class Functions {
 	public static function get_payment_formatted_price_html( $price ) {
 		$original_price  = $price;
 		$formatted_price = self::get_payment_formatted_price( $original_price );
-		$currency_symbol = self::get_currency_symbol( self::get_order_currency() );
-		$price_format    = self::get_price_format( true );
+		$order_currency  = self::get_order_currency();
+		$currency_symbol = self::get_currency_symbol( $order_currency );
+		$price_format    = self::get_price_format( true, $order_currency );
 
 		$formatted_payment_price_html = apply_filters(
 			'rtcl_formatted_payment_price_html',
@@ -881,11 +944,12 @@ class Functions {
 	 *
 	 * @param string|float|int $price Price.
 	 * @param bool             $payment
+	 * @param string           $currency
 	 *
 	 * @return string
 	 */
-	public static function trim_zeros( $price, $payment = false ) {
-		$decimal_separator = self::get_decimal_separator( $payment );
+	public static function trim_zeros( $price, $payment = false, $currency = '' ) {
+		$decimal_separator = self::get_decimal_separator( $payment, $currency );
 
 		return preg_replace( '/' . preg_quote( $decimal_separator, '/' ) . '0++$/', '', $price );
 	}
@@ -903,11 +967,14 @@ class Functions {
 	/**
 	 * Return the number of decimals after the decimal point.
 	 *
+	 * @param string $currency Currency code.
 	 * @return int
 	 * @since  1.5
 	 */
-	public static function get_price_decimals() {
-		return absint( apply_filters( 'rtcl_get_price_decimals', 2 ) );
+	public static function get_price_decimals( $currency = '' ) {
+		$currency_info = self::get_currency_info( $currency );
+		// TODO: Add decimals in currency-info.php if required, for now using global setting.
+		return absint( apply_filters( 'rtcl_get_price_decimals', 2, $currency ) );
 	}
 
 	public static function request( $key, $default = null ) {
@@ -1825,7 +1892,12 @@ class Functions {
 		return $date->format( 'Y-m-d H:i:s' );
 	}
 
-	public static function get_decimal_separator( $payment = false ) {
+	public static function get_decimal_separator( $payment = false, $currency = '' ) {
+		$currency_info = self::get_currency_info( $currency ?: self::get_currency( $payment ) );
+		if ( ! empty( $currency_info['decimal_sep'] ) ) {
+			return $currency_info['decimal_sep'];
+		}
+
 		if ( $payment ) {
 			$currency_settings = self::get_option( 'rtcl_payment_settings' );
 		} else {
@@ -1839,6 +1911,9 @@ class Functions {
 	 * @return array
 	 */
 	public static function get_decimal_separator_both() {
+		// This function seems to be used for localized price formatting,
+		// not directly for individual currency settings.
+		// For now, it can remain as is, but might need review if specific localized formatting per currency is needed.
 		$payment_currency_settings = self::get_option( 'rtcl_payment_settings' );
 		$currency_settings         = self::get_option( 'rtcl_general_settings' );
 
@@ -1847,6 +1922,7 @@ class Functions {
 			isset( $currency_settings['currency_decimal_separator'] ) ? stripslashes( $currency_settings['currency_decimal_separator'] ) : '.'
 		];
 	}
+
 
 	public static function get_currency( $payment = false ) {
 		if ( $payment ) {
@@ -1859,8 +1935,8 @@ class Functions {
 	}
 
 	public static function get_order_currency() {
+		// This should probably remain as is, as orders likely have a single currency context.
 		$currency = self::get_option_item( 'rtcl_payment_settings', 'currency' );
-
 		return apply_filters( 'rtcl_get_order_currency', $currency );
 	}
 
@@ -1868,7 +1944,7 @@ class Functions {
 		if ( ! $currency ) {
 			$currency = $payment ? self::get_order_currency() : self::get_currency();
 		}
-		$symbols         = Options::get_currency_symbols();
+		$symbols         = \Rtcl\Resources\Options::get_currency_symbols();
 		$currency_symbol = isset( $symbols[ $currency ] ) ? $symbols[ $currency ] : '';
 
 		return apply_filters( 'rtcl_get_currency_symbol', $currency_symbol, $currency, $payment );
@@ -1878,13 +1954,18 @@ class Functions {
 		if ( ! $currency ) {
 			$currency = self::get_order_currency();
 		}
-		$symbols         = Options::get_currency_symbols();
+		$symbols         = \Rtcl\Resources\Options::get_currency_symbols();
 		$currency_symbol = isset( $symbols[ $currency ] ) ? $symbols[ $currency ] : '';
 
 		return apply_filters( 'rtcl_get_order_currency_symbol', $currency_symbol, $currency );
 	}
 
-	public static function get_thousands_separator( $payment = false ) {
+	public static function get_thousands_separator( $payment = false, $currency = '' ) {
+		$currency_info = self::get_currency_info( $currency ?: self::get_currency( $payment ) );
+		if ( ! empty( $currency_info['thousand_sep'] ) ) {
+			return $currency_info['thousand_sep'];
+		}
+
 		if ( $payment ) {
 			$currency_settings = self::get_option( 'rtcl_payment_settings' );
 		} else {
@@ -1892,6 +1973,21 @@ class Functions {
 		}
 
 		return isset( $currency_settings['currency_thousands_separator'] ) ? stripslashes( $currency_settings['currency_thousands_separator'] ) : ',';
+	}
+
+	/**
+	 * Get currency formatting information.
+	 *
+	 * @param string $currency_code Currency code.
+	 * @return array Currency formatting information.
+	 */
+	public static function get_currency_info( $currency_code ) {
+		$currencies_info = include RTCL_PATH . 'i18n/currency-info.php';
+		if ( isset( $currencies_info[ $currency_code ] ) ) {
+			// TODO: Consider locale specific formats if available within $currencies_info[$currency_code]
+			return $currencies_info[ $currency_code ]['default'] ?? $currencies_info[ $currency_code ] ?? [];
+		}
+		return [];
 	}
 
 	public static function sanitize_title_with_underscores( $title ) {

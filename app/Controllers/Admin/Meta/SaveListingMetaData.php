@@ -222,6 +222,16 @@ class SaveListingMetaData {
 				$geo_address = isset( $_POST['rtcl_geo_address'] ) ? Functions::sanitize( $_POST['rtcl_geo_address'] ) : '';
 				update_post_meta( $post_id, '_rtcl_geo_address', $geo_address );
 			}
+
+			// Save listing currency
+			if ( isset( $_POST['_rtcl_listing_currency'] ) ) {
+				$listing_currency = Functions::sanitize( $_POST['_rtcl_listing_currency'] );
+				if ( ! empty( $listing_currency ) ) {
+					update_post_meta( $post_id, '_rtcl_listing_currency', $listing_currency );
+				} else {
+					delete_post_meta( $post_id, '_rtcl_listing_currency' );
+				}
+			}
 		}
 
 		do_action( 'rtcl_listing_update_metas_at_admin', $post_id, $_POST );
