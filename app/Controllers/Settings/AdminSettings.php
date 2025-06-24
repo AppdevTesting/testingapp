@@ -480,49 +480,45 @@ class AdminSettings extends SettingsAPI {
 			$field = include $file_name;
 		}
 
-		if ( $this->current_section && 'tax_rate' === $this->current_section ) {
+		// Default case: load fields from the view file.
+		$options_to_set = $field;
+
+		if ( 'multi_currency' === $this->active_tab ) {
+			// This is the new dedicated tab for all multi-currency settings
+			$current_fields = []; // Start fresh for this tab
+			$currencies = \Rtcl\Resources\Options::get_currencies();
+
+			$current_fields['multi_currency_section_title'] = [
+				'title'       => esc_html__('Multi-Currency Settings', 'classified-listing'),
+				'type'        => 'title',
+				'description' => esc_html__('Configure options for multiple currencies on your site.', 'classified-listing'),
+			];
+			$current_fields['enable_multiple_currencies'] = [
+				'title'       => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
+				'type'        => 'checkbox',
+				'label'       => esc_html__( 'Allow users to select currency when submitting an ad and display ads in their chosen currency.', 'classified-listing' ),
+				'default'     => 'no',
+				'description' => esc_html__('Master switch to enable or disable the multi-currency feature.', 'classified-listing'),
+			];
+			$current_fields['available_currencies'] = [ // This is the target field
+				'title'       => esc_html__( 'Available Currencies for Listings', 'classified-listing' ),
+				'type'        => 'multiselect',
+				'class'       => 'rtcl-select2', // Current class
+				'options'     => $currencies,
+				'default'     => [ Functions::get_currency() ],
+				'description' => esc_html__( 'Select the currencies that users can choose for their listings. Hold Ctrl (or Cmd on Mac) to select multiple. The main store currency will always be included. This option is used when "Enable Multiple Currencies" is checked.', 'classified-listing' ),
+				'dependency'  => ['id' => $this->get_field_id('enable_multiple_currencies'), 'value' => 'yes', 'type' => 'visible'],
+			];
+			$options_to_set = $current_fields; // $options_to_set now has the correct fields for multi_currency tab
+
+		} elseif ( $this->current_section && 'tax_rate' === $this->current_section ) {
+			// Special handling for tax rates, which includes its own file.
 			include RTCL_PATH . "views/settings/tax-rate-settings.php";
-		} else {
-			if ( 'general' === $this->active_tab && ! $this->current_section ) {
-				// Ensure $field is an array if it's not already
-				if ( ! is_array( $field ) ) {
-					$field = [];
-				}
-				$currencies = \Rtcl\Resources\Options::get_currencies();
-
-				// New fields for multi-currency
-				$multi_currency_fields = [
-					'enable_multiple_currencies' => [
-						'title'   => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
-						'type'    => 'checkbox',
-						'label'   => esc_html__( 'Allow users to select currency when submitting an ad and display ads in their chosen currency.', 'classified-listing' ),
-						'default' => 'no',
-						'description' => esc_html__('When enabled, an option to select available currencies will appear below. Save settings to see the option if enabling for the first time.', 'classified-listing'),
-						'section' => 'currency_section', // Assign to currency section
-					],
-					'available_currencies'       => [
-						'title'       => esc_html__( 'Available Currencies', 'classified-listing' ),
-						'type'        => 'multiselect',
-						'class'       => 'rtcl-standard-multiselect', // Changed from rtcl-select2 to use browser default
-						'options'     => $currencies,
-						'default'     => [ Functions::get_currency() ], // Default to current store currency
-						'description' => esc_html__( 'Select the currencies that will be available for users to choose when submitting an ad. Hold Ctrl (or Cmd on Mac) to select multiple. The main store currency will always be included. This option is used when "Enable Multiple Currencies" is checked.', 'classified-listing' ),
-						// 'dependency'  => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'], // Dependency temporarily removed due to JS issues
-						'section' => 'currency_section', // Assign to currency section
-					],
-				];
-
-				// Find the currency_section and insert new fields after currency_decimal_separator
-                $currency_section_key = 'currency_decimal_separator'; // The key of the last standard currency field
-                if (isset($field[$currency_section_key])) {
-                    $field = Functions::array_insert_after($currency_section_key, $field, $multi_currency_fields);
-                } else {
-                    // Fallback if currency_decimal_separator is not found, append to the end of $field
-                    $field = array_merge($field, $multi_currency_fields);
-                }
-			}
-			$this->form_fields = apply_filters( 'rtcl_settings_option_fields', $field, $this->active_tab, $this->current_section );
+			return;
 		}
+		// For other tabs or if multi_currency-settings.php existed and returned something, $options_to_set would be $field
+		// but for multi_currency tab, it's correctly $current_fields.
+		$this->form_fields = apply_filters( 'rtcl_settings_option_fields', $options_to_set, $this->active_tab, $this->current_section );
 	}
 
 	protected function add_subsections() {
@@ -542,7 +538,7 @@ class AdminSettings extends SettingsAPI {
 	protected function general_add_subsections() {
 		$sub_sections = [
 			''                                 => esc_html__( "General", 'classified-listing' ),
-			'multi_currency_options'           => esc_html__( "Multi-Currency Options", 'classified-listing' ),
+			// 'multi_currency_options'           => esc_html__( "Available Currencies", 'classified-listing' ), // Removed as it's a top-level tab now
 			'directory'                        => esc_html__( "Directory", 'classified-listing' )
 		];
 		$sub_sections = apply_filters( 'rtcl_general_sub_sections', $sub_sections );
@@ -619,6 +615,7 @@ class AdminSettings extends SettingsAPI {
 			'style'      => esc_html__( 'Style', 'classified-listing' ),
 			'misc'       => esc_html__( 'Misc', 'classified-listing' ),
 			'advanced'   => esc_html__( 'Advanced', 'classified-listing' ),
+			'multi_currency' => esc_html__( 'Multi-Currency', 'classified-listing' ), // New Top-Level Tab
 			'tools'      => esc_html__( 'Tools', 'classified-listing' ),
 			'ai'         => esc_html__( 'AI Integration', 'classified-listing' ),
 		];
@@ -629,19 +626,27 @@ class AdminSettings extends SettingsAPI {
 		$this->option
 			= $this->active_tab = !empty( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $this->tabs ) ? trim( $_GET['tab'] )
 			: 'general'; /* phpcs:ignore WordPress.Security.NonceVerification.Recommended */
-		$this->add_subsections();
 
-		if ( !empty( $this->subtabs ) ) {
+		// Check if the current active tab has subsections defined for it.
+		// If not, or if it's our new 'multi_currency' tab (which won't have subsections initially unless defined),
+		// $this->current_section will remain empty.
+		$this->add_subsections(); // This needs to be called to populate $this->subtabs if they exist for the active_tab
+
+		if ( !empty( $this->subtabs ) && $this->active_tab !== 'multi_currency' ) { // Exclude multi_currency from this logic for now
 			$this->current_section = !empty( $_GET['section'] ) && array_key_exists( $_GET['section'], $this->subtabs ) ? trim( $_GET['section'] )
 				: ''; /* phpcs:ignore WordPress.Security.NonceVerification.Recommended */
-			$this->option = $this->current_section ? $this->option . '_' . $this->current_section : $this->active_tab;
-			$this->option .= "_settings";
+			// Construct the option name based on tab and section
+			$option_name_base = $this->current_section ? $this->active_tab . '_' . $this->current_section : $this->active_tab;
 			if ( $this->active_tab === 'payment' && $this->current_section ) {
-				$this->option = str_replace( "_settings", "", $this->option );
+				$this->option = $option_name_base; // For payment gateways, option name is just gateway id
+			} else {
+				$this->option = $option_name_base . "_settings";
 			}
 		} else {
-			$this->option = $this->option . "_settings";
+			// For tabs without subsections (like our new 'multi_currency' tab or others)
+			$this->option = $this->active_tab . "_settings";
 		}
+
 		if ( $this->active_tab && !empty( $this->classMap[$this->active_tab] ) ) {
 			new $this->classMap[$this->active_tab]( $this );
 		}
@@ -769,3 +774,5 @@ class AdminSettings extends SettingsAPI {
 		}
 	}
 }
+
+[end of app/Controllers/Settings/AdminSettings.php]
