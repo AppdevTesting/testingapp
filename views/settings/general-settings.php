@@ -172,6 +172,26 @@ $options = array(
 			'classified-listing'),
 		'default'     => '.'
 	),
+	'enable_multiple_currencies'   => array(
+		'title'       => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
+		'type'        => 'checkbox',
+		'label'       => esc_html__( 'Allow users to select different currencies when submitting an ad', 'classified-listing' ),
+		'description' => esc_html__( 'If checked, users will see a currency dropdown on the ad submission form. You can select the available currencies below.', 'classified-listing' ),
+		'default'     => 'no',
+	),
+	'available_currencies'         => array(
+		'title'       => esc_html__( 'Available Currencies', 'classified-listing' ),
+		'type'        => 'multiselect',
+		'class'       => 'rtcl-select2',
+		'options'     => Options::get_currencies(),
+		'default'     => array_keys( Options::get_currencies() ), // Default to all currencies or consider [rtcl()->payment->get_currency()]
+		'description' => esc_html__( 'Select the currencies that users can choose from. The main currency (above) will always be an option.', 'classified-listing' ),
+		'dependency'  => array(
+			'id'    => 'rtcl_general_settings-enable_multiple_currencies',
+			'value' => 'yes',
+			'type'  => 'visible',
+		),
+	),
 	'note_section'             => array(
 		'title'       => esc_html__('Information', 'classified-listing'),
 		'type'        => 'title',

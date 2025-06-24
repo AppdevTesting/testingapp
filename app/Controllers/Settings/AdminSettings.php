@@ -483,26 +483,6 @@ class AdminSettings extends SettingsAPI {
 		if ( $this->current_section && 'tax_rate' === $this->current_section ) {
 			include RTCL_PATH . "views/settings/tax-rate-settings.php";
 		} else {
-			// Add new currency settings to the general tab
-			if ( 'general' === $this->active_tab && ! $this->current_section ) {
-				$currencies = \Rtcl\Resources\Options::get_currencies();
-				$field['enable_multiple_currencies'] = [
-					'title'   => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
-					'type'    => 'checkbox',
-					'label'   => esc_html__( 'Allow users to select currency when submitting an ad', 'classified-listing' ),
-					'default' => 'no',
-				];
-				$field['available_currencies'] = [
-					'title'   => esc_html__( 'Available Currencies', 'classified-listing' ),
-					'type'    => 'multiselect',
-					'class'   => 'rtcl-select2',
-					'options' => $currencies,
-					'default' => [ Functions::get_currency() ],
-					'desc_tip' => esc_html__( 'Select the currencies available for users when submitting an ad. This field is active when "Enable Multiple Currencies" is checked and settings are saved.', 'classified-listing' ),
-					// 'dependency' => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'], // Temporarily removed for debugging
-					'description' => esc_html__( 'Note: The functionality of this field depends on "Enable Multiple Currencies" being checked. Save settings after enabling to ensure proper behavior.', 'classified-listing'),
-				];
-			}
 			$this->form_fields = apply_filters( 'rtcl_settings_option_fields', $field, $this->active_tab, $this->current_section );
 		}
 	}
