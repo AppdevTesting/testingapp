@@ -79,6 +79,10 @@ use Rtcl\Resources\Options;
 				</div>
 			<?php } ?>
 			<div id="rtcl-pricing-items" class="<?php echo esc_attr( 'rtcl-pricing-' . $listing_pricing ) ?>">
+				<?php
+				// Display currency selection dropdown if multi-currency is enabled
+				Functions::get_template( 'listing-form/currency-select', [ 'post_id' => $post_id ] );
+				?>
 				<?php if ( ! Functions::is_price_type_disabled() ): ?>
 					<div class="rtcl-form-group rtcl-pricing-item">
 						<label for="rtcl-price-type" class="rtcl-field-label">

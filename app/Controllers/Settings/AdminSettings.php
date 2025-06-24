@@ -483,25 +483,43 @@ class AdminSettings extends SettingsAPI {
 		if ( $this->current_section && 'tax_rate' === $this->current_section ) {
 			include RTCL_PATH . "views/settings/tax-rate-settings.php";
 		} else {
-			// Add new currency settings to the general tab
 			if ( 'general' === $this->active_tab && ! $this->current_section ) {
+				// Ensure $field is an array if it's not already
+				if ( ! is_array( $field ) ) {
+					$field = [];
+				}
 				$currencies = \Rtcl\Resources\Options::get_currencies();
-				$field['enable_multiple_currencies'] = [
-					'title'   => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
-					'type'    => 'checkbox',
-					'label'   => esc_html__( 'Allow users to select currency when submitting an ad', 'classified-listing' ),
-					'default' => 'no',
+
+				// New fields for multi-currency
+				$multi_currency_fields = [
+					'enable_multiple_currencies' => [
+						'title'   => esc_html__( 'Enable Multiple Currencies', 'classified-listing' ),
+						'type'    => 'checkbox',
+						'label'   => esc_html__( 'Allow users to select currency when submitting an ad and display ads in their chosen currency.', 'classified-listing' ),
+						'default' => 'no',
+						'description' => esc_html__('When enabled, an option to select available currencies will appear below. Save settings to see the option if enabling for the first time.', 'classified-listing'),
+						'section' => 'currency_section', // Assign to currency section
+					],
+					'available_currencies'       => [
+						'title'       => esc_html__( 'Available Currencies', 'classified-listing' ),
+						'type'        => 'multiselect',
+						'class'       => 'rtcl-standard-multiselect', // Changed from rtcl-select2 to use browser default
+						'options'     => $currencies,
+						'default'     => [ Functions::get_currency() ], // Default to current store currency
+						'description' => esc_html__( 'Select the currencies that will be available for users to choose when submitting an ad. Hold Ctrl (or Cmd on Mac) to select multiple. The main store currency will always be included. This option is used when "Enable Multiple Currencies" is checked.', 'classified-listing' ),
+						// 'dependency'  => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'], // Dependency temporarily removed due to JS issues
+						'section' => 'currency_section', // Assign to currency section
+					],
 				];
-				$field['available_currencies'] = [
-					'title'   => esc_html__( 'Available Currencies', 'classified-listing' ),
-					'type'    => 'multiselect',
-					'class'   => 'rtcl-select2',
-					'options' => $currencies,
-					'default' => [ Functions::get_currency() ],
-					'desc_tip' => esc_html__( 'Select the currencies available for users when submitting an ad. This field is active when "Enable Multiple Currencies" is checked and settings are saved.', 'classified-listing' ),
-					// 'dependency' => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'], // Temporarily removed for debugging
-					'description' => esc_html__( 'Note: The functionality of this field depends on "Enable Multiple Currencies" being checked. Save settings after enabling to ensure proper behavior.', 'classified-listing'),
-				];
+
+				// Find the currency_section and insert new fields after currency_decimal_separator
+                $currency_section_key = 'currency_decimal_separator'; // The key of the last standard currency field
+                if (isset($field[$currency_section_key])) {
+                    $field = Functions::array_insert_after($currency_section_key, $field, $multi_currency_fields);
+                } else {
+                    // Fallback if currency_decimal_separator is not found, append to the end of $field
+                    $field = array_merge($field, $multi_currency_fields);
+                }
 			}
 			$this->form_fields = apply_filters( 'rtcl_settings_option_fields', $field, $this->active_tab, $this->current_section );
 		}
@@ -523,8 +541,9 @@ class AdminSettings extends SettingsAPI {
 
 	protected function general_add_subsections() {
 		$sub_sections = [
-			''          => esc_html__( "General", 'classified-listing' ),
-			'directory' => esc_html__( "Directory", 'classified-listing' )
+			''                                 => esc_html__( "General", 'classified-listing' ),
+			'multi_currency_options'           => esc_html__( "Multi-Currency Options", 'classified-listing' ),
+			'directory'                        => esc_html__( "Directory", 'classified-listing' )
 		];
 		$sub_sections = apply_filters( 'rtcl_general_sub_sections', $sub_sections );
 		$this->subtabs = $sub_sections;
