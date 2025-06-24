@@ -498,8 +498,9 @@ class AdminSettings extends SettingsAPI {
 					'class'   => 'rtcl-select2',
 					'options' => $currencies,
 					'default' => [ Functions::get_currency() ],
-					'desc_tip' => esc_html__( 'Select the currencies available for users when submitting an ad.', 'classified-listing' ),
-					'dependency' => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'],
+					'desc_tip' => esc_html__( 'Select the currencies available for users when submitting an ad. This field is active when "Enable Multiple Currencies" is checked and settings are saved.', 'classified-listing' ),
+					// 'dependency' => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'], // Temporarily removed for debugging
+					'description' => esc_html__( 'Note: The functionality of this field depends on "Enable Multiple Currencies" being checked. Save settings after enabling to ensure proper behavior.', 'classified-listing'),
 				];
 			}
 			$this->form_fields = apply_filters( 'rtcl_settings_option_fields', $field, $this->active_tab, $this->current_section );
