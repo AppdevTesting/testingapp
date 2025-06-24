@@ -22,6 +22,16 @@ class ActionHooks {
 		add_action( 'rtcl_listing_seller_contact_form_validation', [ __CLASS__, 'seller_form_validation' ], 10, 2 );
 		add_action( 'rtcl_listing_report_abuse_form_validation', [ __CLASS__, 'report_abuse_form_validation' ], 10, 2 );
 		add_action( 'rtcl_listing_report_abuse_form_validation', [ __CLASS__, 'report_abuse_form_validation' ], 10, 2 );
+		add_action( 'rtcl_listing_form_currency_select', [ __CLASS__, 'add_currency_select_field' ], 10, 1 );
+	}
+
+	/**
+	 * Adds the currency selection field to the listing form.
+	 *
+	 * @param int $post_id Post ID.
+	 */
+	public static function add_currency_select_field( $post_id ) {
+		Functions::get_template( 'listing-form/currency-select', [ 'post_id' => $post_id ] );
 	}
 
 	/**

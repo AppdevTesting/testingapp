@@ -106,7 +106,7 @@ use Rtcl\Resources\Options;
 								class="rtcl-field-label"><?php echo sprintf( '<span class="price-label">%s [<span class="rtcl-currency-symbol">%s</span>]</span>',
 									esc_html__( "Price", 'classified-listing' ),
 									// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-									apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol(), $listing )
+									apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol( $listing ? Functions::get_listing_currency( $listing->get_id() ) : Functions::get_currency() ), $listing )
 								); ?>
 								<span
 									class="require-star">*</span></label>
@@ -121,7 +121,7 @@ use Rtcl\Resources\Options;
 								for="rtcl-max-price" class="rtcl-field-label"><?php echo sprintf( '<span class="price-label">%s [<span class="rtcl-currency-symbol">%s</span>]</span>',
 									esc_html__( "Max Price", 'classified-listing' ),
 									// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-									apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol(), $listing )
+									apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol( $listing ? Functions::get_listing_currency( $listing->get_id() ) : Functions::get_currency() ), $listing )
 								); ?><span
 									class="require-star">*</span></label>
 							<input type="text"

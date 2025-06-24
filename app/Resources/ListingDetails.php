@@ -171,7 +171,7 @@ class ListingDetails {
 									echo sprintf(
 										'<span class="price-label">%s [<span class="rtcl-currency-symbol">%s</span>]</span>',
 										esc_html__( 'Price', 'classified-listing' ),
-										esc_html( apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol(), $listing ) )
+										esc_html( apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol( Functions::get_listing_currency( $listing->get_id() ) ), $listing ) )
 									);
 									?>
 									<span
@@ -189,7 +189,7 @@ class ListingDetails {
 									echo sprintf(
 										'<span class="price-label">%s [<span class="rtcl-currency-symbol">%s</span>]</span>',
 										esc_html__( 'Max Price', 'classified-listing' ),
-										esc_html( apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol(), $listing ) )
+										esc_html( apply_filters( 'rtcl_listing_price_currency_symbol', Functions::get_currency_symbol( Functions::get_listing_currency( $listing->get_id() ) ), $listing ) )
 									);
 									?>
 									<span

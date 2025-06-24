@@ -15,6 +15,7 @@
 	<?php do_action("rtcl_listing_form_before", $post_id); ?>
 	<form action="" method="post" id="rtcl-post-form" class="form-vertical">
 		<?php do_action("rtcl_listing_form_start", $post_id); ?>
+		<?php do_action("rtcl_listing_form_currency_select", $post_id); ?>
 		<div class="rtcl-post">
 			<?php do_action("rtcl_listing_form", $post_id); ?>
 		</div>
