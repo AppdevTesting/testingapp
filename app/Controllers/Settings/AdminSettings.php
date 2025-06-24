@@ -506,8 +506,8 @@ class AdminSettings extends SettingsAPI {
 						'class'       => 'rtcl-select2',
 						'options'     => $currencies,
 						'default'     => [ Functions::get_currency() ], // Default to current store currency
-						'description' => esc_html__( 'Select the currencies that will be available for users to choose when submitting an ad. The main store currency will always be included.', 'classified-listing' ),
-						'dependency'  => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'],
+						'description' => esc_html__( 'Select the currencies that will be available for users to choose when submitting an ad. The main store currency will always be included. This option is used when "Enable Multiple Currencies" is checked.', 'classified-listing' ),
+						// 'dependency'  => ['id' => 'rtcl_general_settings-enable_multiple_currencies', 'value' => 'yes', 'type' => 'visible'], // Dependency temporarily removed due to JS issues
 						'section' => 'currency_section', // Assign to currency section
 					],
 				];
